@@ -23,37 +23,6 @@ run: upload
 	@echo "Starting Modbus Gateway..."
 	mpremote run main.py
 
-# Upload individual files
-.PHONY: upload-main
-upload-main:
-	@echo "Uploading main.py..."
-	mpremote cp main.py :
-
-.PHONY: upload-config
-upload-config:
-	@echo "Uploading config.py..."
-	mpremote cp config.py :
-
-.PHONY: upload-modbus-rtu
-upload-modbus-rtu:
-	@echo "Uploading modbus_rtu.py..."
-	mpremote cp modbus_rtu.py :
-
-.PHONY: upload-modbus-tcp
-upload-modbus-tcp:
-	@echo "Uploading modbus_tcp_server.py..."
-	mpremote cp modbus_tcp_server.py :
-
-.PHONY: upload-http
-upload-http:
-	@echo "Uploading http_server.py..."
-	mpremote cp http_server.py :
-
-.PHONY: upload-html
-upload-html:
-	@echo "Uploading index.html..."
-	mpremote cp index.html :
-
 # Reset and soft reboot the Pico
 .PHONY: reset
 reset:
@@ -98,25 +67,4 @@ monitor:
 
 # Development workflow: clean, upload, and run
 .PHONY: dev
-dev: clean upload run
-
-# Help target
-.PHONY: help
-help:
-	@echo "Available targets:"
-	@echo "  upload         - Upload all files to Pico"
-	@echo "  run            - Upload and run main.py"
-	@echo "  upload-main    - Upload only main.py"
-	@echo "  upload-config  - Upload only config.py"
-	@echo "  upload-modbus-rtu - Upload only modbus_rtu.py"
-	@echo "  upload-modbus-tcp - Upload only modbus_tcp_server.py"
-	@echo "  upload-http    - Upload only http_server.py"
-	@echo "  upload-html    - Upload only index.html"
-	@echo "  reset          - Reset the Pico"
-	@echo "  repl           - Connect to Pico REPL"
-	@echo "  ls             - List files on Pico"
-	@echo "  clean          - Remove project files from Pico"
-	@echo "  info           - Show Pico device info"
-	@echo "  monitor        - Monitor serial output"
-	@echo "  dev            - Clean, upload, and run (development workflow)"
-	@echo "  help           - Show this help message"
+dev: upload run
