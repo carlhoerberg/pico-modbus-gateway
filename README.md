@@ -1,11 +1,12 @@
-# RSP Pico Modbus Gateway
+# Pico Modbus Gateway
 
-A Modbus TCP to RTU gateway implementation for Raspberry Pi Pico (or compatible microcontrollers) using MicroPython. This gateway allows TCP/IP clients to communicate with Modbus RTU devices over RS485.
+A Modbus TCP to RTU gateway implementation for Raspberry Pi Pico (or compatible microcontrollers) using MicroPython. This gateway allows TCP/IP clients and HTTP clients to communicate with Modbus RTU devices over RS485.
 
 ## Features
 
 - **Modbus TCP Server** on port 502
 - **HTTP Web Interface** on port 80 for testing and configuration
+- **HTTP API** - Full Modbus functionality available via REST endpoints
 - **Modbus RTU Client** via RS485/UART
 - **Concurrent Operation** - handles multiple TCP and HTTP connections simultaneously
 - **Thread Safety** - prevents RTU request intermingling using async locks
