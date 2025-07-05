@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modbus Gateway</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 150px; }
+        input, select, button { padding: 5px; margin: 5px; }
+        button { background: #007cba; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .result { margin-top: 20px; padding: 10px; background: #f0f0f0; border: 1px solid #ccc; }
+        .api-docs { margin-top: 30px; border: 1px solid #ddd; border-radius: 5px; }
+        .api-docs h2 { margin: 0; padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; cursor: pointer; }
+        .api-docs h2:hover { background: #e9ecef; }
+        .api-docs-content { padding: 20px; display: none; }
+        .api-docs-content.show { display: block; }
+        .endpoint { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-left: 4px solid #007cba; }
+        .endpoint-url { font-family: monospace; background: #e9ecef; padding: 8px; margin: 5px 0; border-radius: 3px; }
+        .json-example { background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 5px; font-family: monospace; overflow-x: auto; }
+        .params { margin: 10px 0; }
+        .params code { background: #e9ecef; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Modbus RTU Gateway</h1>
+
+        <div class="form-group">
+            <label>Slave ID:</label>
+            <input type="number" id="slaveId" value="1" min="1" max="247">
+        </div>
+
+        <div class="form-group">
+            <label>Function:</label>
+            <select id="function">
+                <option value="read_coils">Read Coils</option>
+                <option value="read_discrete">Read Discrete Inputs</option>
+                <option value="read_holding">Read Holding Registers</option>
+                <option value="read_input">Read Input Registers</option>
+                <option value="write_coil">Write Single Coil</option>
+                <option value="write_single">Write Single Register</option>
+                <option value="write_coils">Write Multiple Coils</option>
+                <option value="write_multiple">Write Multiple Registers</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Start Address:</label>
+            <input type="number" id="startAddr" value="0" min="0" max="65535">
+        </div>
+
+        <div class="form-group" id="countGroup">
+            <label>Count:</label>
+            <input type="number" id="count" value="1" min="1" max="125">
+        </div>
+
+        <div class="form-group" id="valueGroup" style="display:none;">
+            <label>Value:</label>
+            <input type="number" id="value" value="0" min="0" max="65535">
+        </div>
+
+        <div class="form-group" id="valuesGroup" style="display:none;">
+            <label>Values:</label>
+            <input type="text" id="values" placeholder="1,2,3,4,5" title="Comma-separated values">
+        </div>
+
+        <div class="form-group" id="coilValueGroup" style="display:none;">
+            <label>Coil Value:</label>
+            <select id="coilValue">
+                <option value="0">OFF (0)</option>
+                <option value="1">ON (1)</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="coilValuesGroup" style="display:none;">
+            <label>Coil Values:</label>
+            <input type="text" id="coilValues" placeholder="1,0,1,0,1" title="Comma-separated boolean values (1/0, true/false, on/off)">
+        </div>
+
+        <button onclick="executeModbus()">Execute</button>
+
+        <div class="result" id="result"></div>
+
+        <div class="api-docs">
+            <h2 id="apiDocsToggle">📖 API Documentation</h2>
+            <div class="api-docs-content" id="apiDocs">
+                <h3>HTTP JSON API Reference</h3>
+                <p>All API endpoints use GET requests and return JSON responses.</p>
+                
+                <div class="endpoint">
+                    <h4>Read Coils</h4>
+                    <div class="endpoint-url">GET /api/read_coils?slave_id=1&start_addr=0&count=8</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>count</code> (1-2000)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Read Discrete Inputs</h4>
+                    <div class="endpoint-url">GET /api/read_discrete?slave_id=1&start_addr=0&count=8</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>count</code> (1-2000)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Read Holding Registers</h4>
+                    <div class="endpoint-url">GET /api/read_holding?slave_id=1&start_addr=0&count=2</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>count</code> (1-125)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Read Input Registers</h4>
+                    <div class="endpoint-url">GET /api/read_input?slave_id=1&start_addr=0&count=2</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>count</code> (1-125)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Write Single Coil</h4>
+                    <div class="endpoint-url">GET /api/write_coil?slave_id=1&start_addr=0&value=1</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>value</code> (0 or 1)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Write Single Register</h4>
+                    <div class="endpoint-url">GET /api/write_single?slave_id=1&start_addr=0&value=1234</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>value</code> (0-65535)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Write Multiple Coils</h4>
+                    <div class="endpoint-url">GET /api/write_coils?slave_id=1&start_addr=0&values=1,0,1,1</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>values</code> (comma-separated 0/1)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Write Multiple Registers</h4>
+                    <div class="endpoint-url">GET /api/write_multiple?slave_id=1&start_addr=0&values=1234,5678</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>values</code> (comma-separated 0-65535)
+                    </div>
+                </div>
+
+                <h3>Response Format</h3>
+                <h4>Success Response</h4>
+                <div class="json-example">
+{
+    "success": true,
+    "data": [result_data]
+}
+                </div>
+
+                <h4>Error Response</h4>
+                <div class="json-example">
+{
+    "success": false,
+    "error": "Error description"
+}
+                </div>
+
+                <h3>Common Error Types</h3>
+                <ul>
+                    <li><strong>Communication timeout:</strong> No response from Modbus device</li>
+                    <li><strong>Modbus error:</strong> Protocol-level error from device</li>
+                    <li><strong>API Error:</strong> Parameter validation or processing error</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleApiDocs() {
+            const apiDocs = document.getElementById('apiDocs');
+            apiDocs.classList.toggle('show');
+        }
+
+        // Add event listener for API docs toggle
+        document.getElementById('apiDocsToggle').addEventListener('click', toggleApiDocs);
+
+        document.getElementById('function').addEventListener('change', function() {
+            const func = this.value;
+            const countGroup = document.getElementById('countGroup');
+            const valueGroup = document.getElementById('valueGroup');
+            const valuesGroup = document.getElementById('valuesGroup');
+            const coilValueGroup = document.getElementById('coilValueGroup');
+            const coilValuesGroup = document.getElementById('coilValuesGroup');
+
+            // Hide all groups first
+            countGroup.style.display = 'none';
+            valueGroup.style.display = 'none';
+            valuesGroup.style.display = 'none';
+            coilValueGroup.style.display = 'none';
+            coilValuesGroup.style.display = 'none';
+
+            if (func === 'write_single') {
+                valueGroup.style.display = 'block';
+            } else if (func === 'write_multiple') {
+                valuesGroup.style.display = 'block';
+            } else if (func === 'write_coil') {
+                coilValueGroup.style.display = 'block';
+            } else if (func === 'write_coils') {
+                coilValuesGroup.style.display = 'block';
+            } else {
+                // Read functions
+                countGroup.style.display = 'block';
+            }
+        });
+
+        async function executeModbus() {
+            const slaveId = document.getElementById('slaveId').value;
+            const func = document.getElementById('function').value;
+            const startAddr = document.getElementById('startAddr').value;
+            const count = document.getElementById('count').value;
+            const value = document.getElementById('value').value;
+            const values = document.getElementById('values').value;
+            const coilValue = document.getElementById('coilValue').value;
+            const coilValues = document.getElementById('coilValues').value;
+
+            let url = `/api/${func}?slave_id=${slaveId}&start_addr=${startAddr}`;
+
+            if (func === 'write_single') {
+                url += `&value=${value}`;
+            } else if (func === 'write_multiple') {
+                url += `&values=${encodeURIComponent(values)}`;
+            } else if (func === 'write_coil') {
+                url += `&value=${coilValue}`;
+            } else if (func === 'write_coils') {
+                url += `&values=${encodeURIComponent(coilValues)}`;
+            } else {
+                url += `&count=${count}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<pre>Error: ' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>
