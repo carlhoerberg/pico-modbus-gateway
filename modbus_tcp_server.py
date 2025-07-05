@@ -146,7 +146,9 @@ class ModbusTCPServer:
         count = struct.unpack(">H", pdu[3:5])[0]
 
         # Forward to RTU
-        result = await self.modbus_rtu.read_holding_registers(unit_id, start_addr, count)
+        result = await self.modbus_rtu.read_holding_registers(
+            unit_id, start_addr, count
+        )
 
         if result is None:
             return bytes([0x83, 0x04])  # Server device failure
@@ -192,7 +194,9 @@ class ModbusTCPServer:
         value = struct.unpack(">H", pdu[3:5])[0]
 
         # Forward to RTU
-        result = await self.modbus_rtu.write_single_register(unit_id, register_addr, value)
+        result = await self.modbus_rtu.write_single_register(
+            unit_id, register_addr, value
+        )
 
         if result is None:
             return bytes([0x86, 0x04])  # Server device failure
@@ -224,7 +228,9 @@ class ModbusTCPServer:
             values.append(value)
 
         # Forward to RTU
-        result = await self.modbus_rtu.write_multiple_registers(unit_id, start_addr, values)
+        result = await self.modbus_rtu.write_multiple_registers(
+            unit_id, start_addr, values
+        )
 
         if result is None:
             return bytes([0x90, 0x04])  # Server device failure
