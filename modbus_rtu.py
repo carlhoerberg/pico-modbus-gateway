@@ -4,10 +4,36 @@ import uasyncio as asyncio
 
 
 class ModbusRTU:
-    def __init__(self, uart_id=0, baudrate=9600, tx_pin=0, rx_pin=1, de_pin=2):
-        self.uart = UART(uart_id, baudrate=baudrate, tx=Pin(tx_pin), rx=Pin(rx_pin))
-        self.de_pin = Pin(de_pin, Pin.OUT)  # Direction Enable pin for RS485
-        self.de_pin.value(0)  # Start in receive mode
+    def __init__(self, uart_id=0, baudrate=9600, parity=0, stop_bits=1):
+        # Pin assignments based on WaveShare Pico-2CH-RS485 HAT
+        pin_map = {
+            0: {"tx": 0, "rx": 1},  # UART0: GP0, GP1
+            1: {"tx": 4, "rx": 5},  # UART1: GP4, GP5
+        }
+
+        if uart_id not in pin_map:
+            raise ValueError(f"Invalid UART ID: {uart_id}. Must be 0 or 1.")
+
+        pins = pin_map[uart_id]
+
+        # Convert parity from config format to UART format
+        uart_parity = None
+        if parity == 1:
+            uart_parity = 1  # Odd
+        elif parity == 2:
+            uart_parity = 0  # Even
+        # parity == 0 means None (default)
+
+        self.uart = UART(
+            uart_id,
+            baudrate=baudrate,
+            bits=8,
+            parity=uart_parity,
+            stop=stop_bits,
+            tx=Pin(pins["tx"]),
+            rx=Pin(pins["rx"]),
+        )
+        # No DE pin needed - WaveShare HAT uses auto-direction switching
         self.lock = asyncio.Lock()  # Prevent concurrent RTU requests
 
     def _calculate_crc(self, data):
@@ -29,19 +55,11 @@ class ModbusRTU:
         crc = self._calculate_crc(frame)
         complete_frame = frame + crc
 
-        # Switch to transmit mode
-        self.de_pin.value(1)
-        time.sleep_ms(1)
-
-        # Send frame
+        # Send frame (auto-direction switching handles TX/RX mode)
         self.uart.write(complete_frame)
 
         # Wait for transmission to complete
         time.sleep_ms(10)
-
-        # Switch back to receive mode
-        self.de_pin.value(0)
-        time.sleep_ms(1)
 
         return complete_frame
 

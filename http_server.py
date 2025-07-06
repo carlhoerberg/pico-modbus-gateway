@@ -135,6 +135,8 @@ class HTTPServer:
                 return await self.api_ota_update(params)
             elif path == "/api/wifi_config":
                 return await self.api_wifi_config(params)
+            elif path == "/api/modbus_config":
+                return await self.api_modbus_config(params)
             else:
                 return self.api_error("Unknown API endpoint")
 
@@ -451,6 +453,104 @@ class HTTPServer:
 
         except Exception as e:
             response = {"success": False, "error": f"WiFi config error: {str(e)}"}
+
+        json_str = json.dumps(response)
+        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+    async def api_modbus_config(self, params):
+        """API: Update ModbusRTU configuration"""
+        try:
+            uart_id = int(params.get("uart_id", 0))
+            baudrate = int(params.get("baudrate", 9600))
+            parity = int(params.get("parity", 0))
+            stop_bits = int(params.get("stop_bits", 1))
+
+            # Validation
+            if uart_id not in [0, 1]:
+                response = {"success": False, "error": "UART ID must be 0 or 1"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            if baudrate not in [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]:
+                response = {"success": False, "error": "Invalid baudrate"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            if parity not in [0, 1, 2]:
+                response = {
+                    "success": False,
+                    "error": "Parity must be 0 (None), 1 (Odd), or 2 (Even)",
+                }
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            if stop_bits not in [1, 2]:
+                response = {"success": False, "error": "Stop bits must be 1 or 2"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            # Read current config file
+            try:
+                with open("config.py", "r") as f:
+                    config_content = f.read()
+            except OSError:
+                response = {"success": False, "error": "Could not read config file"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            # Update ModbusRTU settings in config
+            lines = config_content.split("\n")
+            updated_lines = []
+
+            for line in lines:
+                if line.startswith("UART_ID = "):
+                    updated_lines.append(f"UART_ID = {uart_id}  # 0 or 1")
+                elif line.startswith("BAUDRATE = "):
+                    updated_lines.append(f"BAUDRATE = {baudrate}")
+                elif line.startswith("PARITY = "):
+                    updated_lines.append(f"PARITY = {parity}  # 0=None, 1=Odd, 2=Even")
+                elif line.startswith("STOP_BITS = "):
+                    updated_lines.append(f"STOP_BITS = {stop_bits}  # 1 or 2")
+                else:
+                    updated_lines.append(line)
+
+            new_config = "\n".join(updated_lines)
+
+            # Write updated config file
+            try:
+                with open("config.py", "w") as f:
+                    f.write(new_config)
+            except OSError:
+                response = {"success": False, "error": "Could not write config file"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            # Pin assignments based on UART ID
+            pin_map = {0: {"tx": 0, "rx": 1}, 1: {"tx": 4, "rx": 5}}
+            pins = pin_map[uart_id]
+
+            response = {
+                "success": True,
+                "message": "ModbusRTU configuration updated successfully. Device will restart immediately.",
+                "config": {
+                    "uart_id": uart_id,
+                    "baudrate": baudrate,
+                    "parity": parity,
+                    "stop_bits": stop_bits,
+                    "tx_pin": pins["tx"],
+                    "rx_pin": pins["rx"],
+                },
+                "action": "restart_immediate",
+            }
+
+            # Import machine module for restart
+            import machine
+
+            # Restart immediately after response
+            machine.reset()
+
+        except Exception as e:
+            response = {"success": False, "error": f"ModbusRTU config error: {str(e)}"}
 
         json_str = json.dumps(response)
         return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"

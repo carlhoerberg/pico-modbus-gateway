@@ -5,7 +5,7 @@ import uasyncio as asyncio
 from modbus_rtu import ModbusRTU
 from modbus_tcp_server import ModbusTCPServer
 from http_server import HTTPServer
-from config import WIFI_SSID, WIFI_PASSWORD
+from config import WIFI_SSID, WIFI_PASSWORD, UART_ID, BAUDRATE, PARITY, STOP_BITS
 from ota_updater import OTAUpdater
 
 
@@ -82,15 +82,19 @@ async def main():
 
     # Initialize Modbus RTU
     print("[DEBUG] Initializing Modbus RTU interface...")
-    # Adjust pins according to your Waveshare RS485 HAT connections
+    # Use settings from config.py - pin assignments are handled automatically
     modbus = ModbusRTU(
-        uart_id=0,  # UART0
-        baudrate=9600,  # Common Modbus baudrate
-        tx_pin=0,  # TX pin
-        rx_pin=1,  # RX pin
-        de_pin=2,  # Direction Enable pin for RS485
+        uart_id=UART_ID,
+        baudrate=BAUDRATE,
+        parity=PARITY,
+        stop_bits=STOP_BITS,
     )
-    print("[DEBUG] Modbus RTU initialized on UART0, 9600 baud")
+    parity_str = ["None", "Odd", "Even"][PARITY]
+    pin_map = {0: {"tx": 0, "rx": 1}, 1: {"tx": 4, "rx": 5}}
+    pins = pin_map[UART_ID]
+    print(
+        f"[DEBUG] Modbus RTU initialized on UART{UART_ID} (TX=GP{pins['tx']}, RX=GP{pins['rx']}), {BAUDRATE} baud, {parity_str} parity, {STOP_BITS} stop bits"
+    )
 
     # Initialize HTTP server
     print("[DEBUG] Initializing HTTP server on port 80...")
