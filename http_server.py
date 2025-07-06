@@ -133,6 +133,8 @@ class HTTPServer:
                 return await self.api_write_multiple(params)
             elif path == "/api/ota_update":
                 return await self.api_ota_update(params)
+            elif path == "/api/wifi_config":
+                return await self.api_wifi_config(params)
             else:
                 return self.api_error("Unknown API endpoint")
 
@@ -377,6 +379,78 @@ class HTTPServer:
         except Exception as e:
             print(f"[OTA API] Error: {e}")
             response = {"success": False, "error": f"OTA update error: {str(e)}"}
+
+        json_str = json.dumps(response)
+        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+    async def api_wifi_config(self, params):
+        """API: Update WiFi configuration"""
+        try:
+            ssid = params.get("ssid", "").strip()
+            password = params.get("password", "").strip()
+
+            if not ssid:
+                response = {"success": False, "error": "WiFi SSID cannot be empty"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            # Read current config file
+            try:
+                with open("config.py", "r") as f:
+                    config_content = f.read()
+            except OSError:
+                response = {"success": False, "error": "Could not read config file"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            # Update WiFi settings in config
+            lines = config_content.split("\n")
+            updated_lines = []
+            ssid_updated = False
+            password_updated = False
+
+            for line in lines:
+                if line.startswith("WIFI_SSID = "):
+                    updated_lines.append(f'WIFI_SSID = "{ssid}"')
+                    ssid_updated = True
+                elif line.startswith("WIFI_PASSWORD = "):
+                    updated_lines.append(f'WIFI_PASSWORD = "{password}"')
+                    password_updated = True
+                else:
+                    updated_lines.append(line)
+
+            # If not found, add them
+            if not ssid_updated:
+                updated_lines.insert(3, f'WIFI_SSID = "{ssid}"')
+            if not password_updated:
+                updated_lines.insert(4, f'WIFI_PASSWORD = "{password}"')
+
+            new_config = "\n".join(updated_lines)
+
+            # Write updated config file
+            try:
+                with open("config.py", "w") as f:
+                    f.write(new_config)
+            except OSError:
+                response = {"success": False, "error": "Could not write config file"}
+                json_str = json.dumps(response)
+                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+            response = {
+                "success": True,
+                "message": "WiFi configuration updated successfully. Device will restart immediately.",
+                "ssid": ssid,
+                "action": "restart_immediate",
+            }
+
+            # Import machine module for restart
+            import machine
+
+            # Restart immediately after response
+            machine.reset()
+
+        except Exception as e:
+            response = {"success": False, "error": f"WiFi config error: {str(e)}"}
 
         json_str = json.dumps(response)
         return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"

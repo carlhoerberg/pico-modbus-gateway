@@ -27,6 +27,23 @@
     <div class="container">
         <h1>Modbus RTU Gateway</h1>
 
+        <!-- WiFi Configuration Section -->
+        <div class="api-docs">
+            <h2 id="wifiConfigToggle">WiFi Configuration</h2>
+            <div class="api-docs-content" id="wifiConfig">
+                <div class="form-group">
+                    <label>WiFi SSID:</label>
+                    <input type="text" id="wifiSsid" placeholder="Enter WiFi network name">
+                </div>
+                <div class="form-group">
+                    <label>WiFi Password:</label>
+                    <input type="password" id="wifiPassword" placeholder="Enter WiFi password">
+                </div>
+                <button onclick="updateWifiConfig()">Update WiFi Configuration</button>
+                <div class="result" id="wifiResult"></div>
+            </div>
+        </div>
+
         <div class="form-group">
             <label>Slave ID:</label>
             <input type="number" id="slaveId" value="1" min="1" max="247">
@@ -196,6 +213,12 @@
 
         // Add event listener for API docs toggle
         document.getElementById('apiDocsToggle').addEventListener('click', toggleApiDocs);
+        
+        // Add event listener for WiFi config toggle
+        document.getElementById('wifiConfigToggle').addEventListener('click', function() {
+            const wifiConfig = document.getElementById('wifiConfig');
+            wifiConfig.classList.toggle('show');
+        });
 
         document.getElementById('function').addEventListener('change', function() {
             const func = this.value;
@@ -258,6 +281,34 @@
             } catch (error) {
                 document.getElementById('result').innerHTML = 
                     '<pre>Error: ' + error.message + '</pre>';
+            }
+        }
+
+        async function updateWifiConfig() {
+            const ssid = document.getElementById('wifiSsid').value;
+            const password = document.getElementById('wifiPassword').value;
+
+            if (!ssid) {
+                document.getElementById('wifiResult').innerHTML = 
+                    '<pre style="color: red;">Error: WiFi SSID cannot be empty</pre>';
+                return;
+            }
+
+            try {
+                const url = `/api/wifi_config?ssid=${encodeURIComponent(ssid)}&password=${encodeURIComponent(password)}`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('wifiResult').innerHTML = 
+                        '<pre style="color: green;">' + JSON.stringify(result, null, 2) + '</pre>';
+                } else {
+                    document.getElementById('wifiResult').innerHTML = 
+                        '<pre style="color: red;">' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('wifiResult').innerHTML = 
+                    '<pre style="color: red;">Error: ' + error.message + '</pre>';
             }
         }
     </script>
