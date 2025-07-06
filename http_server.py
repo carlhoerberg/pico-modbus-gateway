@@ -1,6 +1,7 @@
 import socket
 import json
 import uasyncio as asyncio
+from ota_updater import OTAUpdater
 
 
 class HTTPServer:
@@ -8,6 +9,7 @@ class HTTPServer:
         self.modbus = modbus_rtu
         self.port = port
         self.socket = None
+        self.ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
 
     async def start(self):
         """Start the HTTP server"""
@@ -129,6 +131,8 @@ class HTTPServer:
                 return await self.api_write_coils(params)
             elif path == "/api/write_multiple":
                 return await self.api_write_multiple(params)
+            elif path == "/api/ota_update":
+                return await self.api_ota_update(params)
             else:
                 return self.api_error("Unknown API endpoint")
 
@@ -311,6 +315,68 @@ class HTTPServer:
                 "success": True,
                 "message": f"Written {len(values)} coils successfully",
             }
+
+        json_str = json.dumps(response)
+        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+    async def api_ota_update(self, params):
+        """API: Perform OTA update"""
+        try:
+            # Check if force update is requested
+            force_update = params.get("force", "false").lower() in ["true", "1", "yes"]
+
+            response = {"success": False}
+
+            if force_update:
+                # Force update - download and replace files regardless of version
+                print("[OTA API] Force update requested")
+                update_result = await self.ota_updater.perform_update()
+                if update_result:
+                    response = {
+                        "success": True,
+                        "message": "OTA update completed successfully. Device will restart.",
+                        "action": "restart_pending",
+                    }
+                    # Restart immediately
+                    self.ota_updater.restart_device()
+                else:
+                    response = {
+                        "success": False,
+                        "error": "OTA update failed. Check logs for details.",
+                    }
+            else:
+                # Normal update - check for newer version first
+                print("[OTA API] Checking for available updates")
+                update_available = await self.ota_updater.check_for_updates()
+
+                if isinstance(update_available, tuple) and update_available[0]:
+                    # Update available
+                    print("[OTA API] Update available, performing update")
+                    update_result = await self.ota_updater.perform_update()
+                    if update_result:
+                        response = {
+                            "success": True,
+                            "message": "OTA update completed successfully. Device will restart.",
+                            "action": "restart_pending",
+                        }
+                        # Restart immediately
+                        self.ota_updater.restart_device()
+                    else:
+                        response = {
+                            "success": False,
+                            "error": "OTA update failed. Check logs for details.",
+                        }
+                else:
+                    # No update available
+                    response = {
+                        "success": True,
+                        "message": "No updates available. Device is already running the latest version.",
+                        "action": "no_update",
+                    }
+
+        except Exception as e:
+            print(f"[OTA API] Error: {e}")
+            response = {"success": False, "error": f"OTA update error: {str(e)}"}
 
         json_str = json.dumps(response)
         return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"

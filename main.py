@@ -6,6 +6,7 @@ from modbus_rtu import ModbusRTU
 from modbus_tcp_server import ModbusTCPServer
 from http_server import HTTPServer
 from config import WIFI_SSID, WIFI_PASSWORD
+from ota_updater import OTAUpdater
 
 
 # WiFi connection
@@ -65,6 +66,15 @@ async def main():
     # Connect to WiFi (will retry forever until successful)
     print("[DEBUG] Starting WiFi connection...")
     connect_wifi(WIFI_SSID, WIFI_PASSWORD)
+
+    # Check for OTA updates
+    print("[DEBUG] Checking for OTA updates...")
+    ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
+    try:
+        await ota_updater.check_and_update()
+    except Exception as e:
+        print(f"[WARNING] OTA update failed: {e}")
+        print("[INFO] Continuing with current version...")
 
     # Get IP address for display
     wlan = network.WLAN(network.STA_IF)
