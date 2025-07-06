@@ -20,10 +20,11 @@ class OTAUpdater:
         self.api_url = f"https://api.github.com/repos/{github_repo}"
         self.commit_file = "current_commit.txt"
         self.files_to_exclude = [
-            "Makefile",
+            self.commit_file,
             "config.py",
-            "current_commit.txt",
+            "Makefile",
             "README.md",
+            "LICENSE",
         ]
 
     def get_current_commit(self):
