@@ -8,6 +8,8 @@ A Modbus TCP to RTU gateway implementation for Raspberry Pi Pico (or compatible 
 - **HTTP Web Interface** on port 80 for testing and configuration
 - **HTTP API** - Full Modbus functionality available via REST endpoints
 - **Modbus RTU Client** via RS485/UART
+- **Web-based Configuration** - WiFi and ModbusRTU settings configurable via web interface
+- **OTA Updates** - Over-the-air firmware updates from GitHub
 - **Concurrent Operation** - handles multiple TCP and HTTP connections simultaneously
 - **Thread Safety** - prevents RTU request intermingling using async locks
 
@@ -27,23 +29,30 @@ All standard Modbus data access functions are supported with proper bit packing/
 
 ## Hardware Requirements
 
-- Raspberry Pi Pico (or compatible MicroPython board)
-- RS485 HAT/Module (e.g., Waveshare RS485 HAT)
+- Raspberry Pi Pico W (or compatible MicroPython board with WiFi)
+- WaveShare Pico-2CH-RS485 HAT (or compatible RS485 module)
 - WiFi connectivity
 
 ## Pin Configuration
 
-Default pin assignments (configurable in code):
-- **UART0 TX**: Pin 0
-- **UART0 RX**: Pin 1
-- **RS485 DE**: Pin 2 (Direction Enable)
-- **Baudrate**: 9600 (configurable)
+Fixed pin assignments for WaveShare Pico-2CH-RS485 HAT:
+- **UART0**: TX=GP0, RX=GP1 (Channel 0)
+- **UART1**: TX=GP4, RX=GP5 (Channel 1)
+- **Direction Control**: Automatic (no DE pin required)
+- **Serial Settings**: Configurable via web interface
 
 ## Installation
 
-1. Flash MicroPython firmware to your Pico
-2. Copy `main.py` to the Pico's filesystem
-3. Update WiFi credentials in the code:
+1. Flash MicroPython firmware to your Pico W
+2. Copy all Python files to the Pico's filesystem:
+   - `main.py`
+   - `config.py`
+   - `http_server.py`
+   - `modbus_rtu.py`
+   - `modbus_tcp_server.py`
+   - `ota_updater.py`
+   - `index.html`
+3. Update WiFi credentials in `config.py`:
    ```python
    WIFI_SSID = "YOUR_WIFI_SSID"
    WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
@@ -54,11 +63,22 @@ Default pin assignments (configurable in code):
 
 ### Web Interface
 
-Access `http://[PICO_IP_ADDRESS]` to use the web-based testing interface:
+Access `http://[PICO_IP_ADDRESS]` to use the web-based interface:
+
+#### Modbus Testing
 - Select Modbus function (Read Coils/Discrete Inputs/Registers, Write Coils/Registers)
 - Set slave ID, start address, and count/values
 - For coil operations: use boolean values (1/0, true/false, on/off)
 - Execute requests and view responses
+
+#### Configuration Management
+- **WiFi Configuration**: Update SSID and password (device restarts automatically)
+- **ModbusRTU Configuration**: 
+  - UART ID selection (0 or 1)
+  - Baudrate (1200-115200)
+  - Parity (None, Odd, Even)
+  - Stop bits (1 or 2)
+  - Pin assignments shown automatically
 
 ### Modbus TCP Client
 
@@ -89,6 +109,13 @@ GET /api/write_coil?slave_id=1&start_addr=0&value=1
 GET /api/write_single?slave_id=1&start_addr=0&value=1234
 GET /api/write_coils?slave_id=1&start_addr=0&values=1,0,1,0,1
 GET /api/write_multiple?slave_id=1&start_addr=0&values=1,2,3,4,5
+```
+
+#### Configuration API
+```
+GET /api/wifi_config?ssid=NetworkName&password=Password123
+GET /api/modbus_config?uart_id=0&baudrate=9600&parity=0&stop_bits=1
+GET /api/ota_update?force=false
 ```
 
 **Note**: For coil operations, use boolean values: `1/0`, `true/false`, `on/off`, `yes/no`
@@ -131,24 +158,25 @@ All API responses return JSON:
 
 ## Configuration
 
+All configuration can be done via the web interface or by editing `config.py`:
+
 ### WiFi Settings
-Update in `main()` function:
 ```python
 WIFI_SSID = "your_network_name"
 WIFI_PASSWORD = "your_password"
 ```
 
-### Modbus RTU Settings
-Update in `main()` function:
+### ModbusRTU Settings
 ```python
-modbus = ModbusRTU(
-    uart_id=0,      # UART port
-    baudrate=9600,  # Baud rate
-    tx_pin=0,       # TX pin
-    rx_pin=1,       # RX pin
-    de_pin=2        # Direction enable pin
-)
+UART_ID = 0          # 0 or 1 (selects pin assignment)
+BAUDRATE = 9600      # 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200
+PARITY = 0           # 0=None, 1=Odd, 2=Even
+STOP_BITS = 1        # 1 or 2
 ```
+
+Pin assignments are automatic based on UART_ID:
+- UART0: TX=GP0, RX=GP1
+- UART1: TX=GP4, RX=GP5
 
 ### Server Ports
 - HTTP Server: Port 80 (configurable)
