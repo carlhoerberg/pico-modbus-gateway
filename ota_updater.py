@@ -1,17 +1,9 @@
 import json
 import gc
 import os
+import requests
+import uasyncio as asyncio
 import machine
-
-try:
-    import urequests as requests
-except ImportError:
-    import requests
-
-try:
-    import uasyncio as asyncio
-except ImportError:
-    import asyncio
 
 
 class OTAUpdater:
@@ -240,8 +232,7 @@ class OTAUpdater:
         try:
             machine.reset()
         except:
-            # Fallback for environments without machine module
-            print("[OTA] Restart not supported in this environment")
+            print("[INFO] Local test mode - restart not available")
 
     async def check_and_update(self):
         """Check for updates and perform update if available"""

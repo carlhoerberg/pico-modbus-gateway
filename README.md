@@ -43,6 +43,8 @@ Fixed pin assignments for WaveShare Pico-2CH-RS485 HAT:
 
 ## Installation
 
+### Hardware Deployment
+
 1. Flash MicroPython firmware to your Pico W
 2. Copy all Python files to the Pico's filesystem:
    - `main.py`
@@ -58,6 +60,31 @@ Fixed pin assignments for WaveShare Pico-2CH-RS485 HAT:
    WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
    ```
 4. Reset the Pico to start the gateway
+
+### Local Testing
+
+For development and testing without hardware:
+
+1. Install MicroPython on your local machine
+2. Clone/download this repository
+3. Run main.py directly:
+   ```bash
+   micropython main.py
+   ```
+
+**Local test mode features:**
+- HTTP server on `http://127.0.0.1:80`
+- Web interface for API testing
+- ModbusTCP server simulation
+- Configuration interface (simulated)
+
+**Disabled in local mode:**
+- WiFi connection
+- UART/RS485 communication
+- OTA updates
+- Device restart
+
+**Note:** Some versions of MicroPython may have socket compatibility issues that prevent the servers from starting locally. The code is designed to work correctly on MicroPython running on actual Pico hardware. If you encounter socket-related errors during local testing, this is a limitation of the local MicroPython environment.
 
 ## Usage
 

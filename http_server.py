@@ -2,6 +2,7 @@ import socket
 import json
 import uasyncio as asyncio
 from ota_updater import OTAUpdater
+import machine
 
 
 class HTTPServer:
@@ -445,11 +446,11 @@ class HTTPServer:
                 "action": "restart_immediate",
             }
 
-            # Import machine module for restart
-            import machine
-
             # Restart immediately after response
-            machine.reset()
+            try:
+                machine.reset()
+            except:
+                print("[INFO] Local test mode - restart not available")
 
         except Exception as e:
             response = {"success": False, "error": f"WiFi config error: {str(e)}"}
@@ -543,11 +544,11 @@ class HTTPServer:
                 "action": "restart_immediate",
             }
 
-            # Import machine module for restart
-            import machine
-
             # Restart immediately after response
-            machine.reset()
+            try:
+                machine.reset()
+            except:
+                print("[INFO] Local test mode - restart not available")
 
         except Exception as e:
             response = {"success": False, "error": f"ModbusRTU config error: {str(e)}"}

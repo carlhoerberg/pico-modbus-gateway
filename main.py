@@ -1,6 +1,14 @@
-import network
+try:
+    # MicroPython on hardware (Pico)
+    import network
+
+    RUNNING_ON_HARDWARE = True
+except ImportError:
+    # Standard MicroPython (local testing)
+    RUNNING_ON_HARDWARE = False
+    print("[INFO] Running in local test mode - hardware features disabled")
+
 import time
-from machine import Pin, UART
 import uasyncio as asyncio
 from modbus_rtu import ModbusRTU
 from modbus_tcp_server import ModbusTCPServer
@@ -11,7 +19,11 @@ from ota_updater import OTAUpdater
 
 # WiFi connection
 def connect_wifi(ssid, password):
-    """Connect to WiFi network - retry forever until successful"""
+    """Connect to WiFi network - retry forever until successful (hardware only)"""
+    if not RUNNING_ON_HARDWARE:
+        print(f"[INFO] Local test mode - simulating WiFi connection to {ssid}")
+        return True
+
     print(f"[DEBUG] Initializing WiFi connection to SSID: {ssid}")
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -67,18 +79,24 @@ async def main():
     print("[DEBUG] Starting WiFi connection...")
     connect_wifi(WIFI_SSID, WIFI_PASSWORD)
 
-    # Check for OTA updates
-    print("[DEBUG] Checking for OTA updates...")
-    ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
-    try:
-        await ota_updater.check_and_update()
-    except Exception as e:
-        print(f"[WARNING] OTA update failed: {e}")
-        print("[INFO] Continuing with current version...")
+    # Check for OTA updates (hardware only)
+    if RUNNING_ON_HARDWARE:
+        print("[DEBUG] Checking for OTA updates...")
+        ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
+        try:
+            await ota_updater.check_and_update()
+        except Exception as e:
+            print(f"[WARNING] OTA update failed: {e}")
+            print("[INFO] Continuing with current version...")
 
     # Get IP address for display
-    wlan = network.WLAN(network.STA_IF)
-    ip_address = wlan.ifconfig()[0]
+    if RUNNING_ON_HARDWARE:
+        wlan = network.WLAN(network.STA_IF)
+        ip_address = wlan.ifconfig()[0]
+    else:
+        # Use localhost for local testing
+        ip_address = "127.0.0.1"
+        print(f"[INFO] Local test mode - using IP address: {ip_address}")
 
     # Initialize Modbus RTU
     print("[DEBUG] Initializing Modbus RTU interface...")
@@ -89,24 +107,20 @@ async def main():
         parity=PARITY,
         stop_bits=STOP_BITS,
     )
-    parity_str = ["None", "Odd", "Even"][PARITY]
-    pin_map = {0: {"tx": 0, "rx": 1}, 1: {"tx": 4, "rx": 5}}
-    pins = pin_map[UART_ID]
-    print(
-        f"[DEBUG] Modbus RTU initialized on UART{UART_ID} (TX=GP{pins['tx']}, RX=GP{pins['rx']}), {BAUDRATE} baud, {parity_str} parity, {STOP_BITS} stop bits"
-    )
 
-    # Initialize HTTP server
-    print("[DEBUG] Initializing HTTP server on port 80...")
-    http_server = HTTPServer(modbus, port=80)
+    # Initialize HTTP server (use port 8080 for local testing to avoid root requirement)
+    http_port = 80 if RUNNING_ON_HARDWARE else 8080
+    print(f"[DEBUG] Initializing HTTP server on port {http_port}...")
+    http_server = HTTPServer(modbus, port=http_port)
 
-    # Initialize Modbus TCP server
-    print("[DEBUG] Initializing Modbus TCP server on port 502...")
-    modbus_tcp_server = ModbusTCPServer(modbus, port=502)
+    # Initialize Modbus TCP server (use port 5020 for local testing)
+    modbus_port = 502 if RUNNING_ON_HARDWARE else 5020
+    print(f"[DEBUG] Initializing Modbus TCP server on port {modbus_port}...")
+    modbus_tcp_server = ModbusTCPServer(modbus, port=modbus_port)
 
     print("[SUCCESS] Starting Modbus Gateway...")
-    print(f"[INFO] Access the web interface at: http://{ip_address}")
-    print(f"[INFO] Modbus TCP server available at: {ip_address}:502")
+    print(f"[INFO] Access the web interface at: http://{ip_address}:{http_port}")
+    print(f"[INFO] Modbus TCP server available at: {ip_address}:{modbus_port}")
 
     # Start both servers concurrently
     print("[DEBUG] Starting HTTP and Modbus TCP servers...")
@@ -122,3 +136,7 @@ if __name__ == "__main__":
         print("\nShutting down...")
     except Exception as e:
         print(f"Error: {e}")
+
+        import traceback
+
+        traceback.print_exc()

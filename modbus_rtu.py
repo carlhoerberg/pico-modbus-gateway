@@ -1,38 +1,62 @@
 import time
-from machine import Pin, UART
 import uasyncio as asyncio
+
+try:
+    # MicroPython on hardware (Pico)
+    from machine import Pin, UART
+
+    RUNNING_ON_HARDWARE = True
+except ImportError:
+    # Standard MicroPython (local testing)
+    RUNNING_ON_HARDWARE = False
 
 
 class ModbusRTU:
     def __init__(self, uart_id=0, baudrate=9600, parity=0, stop_bits=1):
-        # Pin assignments based on WaveShare Pico-2CH-RS485 HAT
-        pin_map = {
-            0: {"tx": 0, "rx": 1},  # UART0: GP0, GP1
-            1: {"tx": 4, "rx": 5},  # UART1: GP4, GP5
-        }
+        self.uart_id = uart_id
+        self.baudrate = baudrate
+        self.parity = parity
+        self.stop_bits = stop_bits
 
-        if uart_id not in pin_map:
-            raise ValueError(f"Invalid UART ID: {uart_id}. Must be 0 or 1.")
+        if RUNNING_ON_HARDWARE:
+            # Pin assignments based on WaveShare Pico-2CH-RS485 HAT
+            pin_map = {
+                0: {"tx": 0, "rx": 1},  # UART0: GP0, GP1
+                1: {"tx": 4, "rx": 5},  # UART1: GP4, GP5
+            }
 
-        pins = pin_map[uart_id]
+            if uart_id not in pin_map:
+                raise ValueError(f"Invalid UART ID: {uart_id}. Must be 0 or 1.")
 
-        # Convert parity from config format to UART format
-        uart_parity = None
-        if parity == 1:
-            uart_parity = 1  # Odd
-        elif parity == 2:
-            uart_parity = 0  # Even
-        # parity == 0 means None (default)
+            pins = pin_map[uart_id]
 
-        self.uart = UART(
-            uart_id,
-            baudrate=baudrate,
-            bits=8,
-            parity=uart_parity,
-            stop=stop_bits,
-            tx=Pin(pins["tx"]),
-            rx=Pin(pins["rx"]),
-        )
+            # Convert parity from config format to UART format
+            uart_parity = None
+            if parity == 1:
+                uart_parity = 1  # Odd
+            elif parity == 2:
+                uart_parity = 0  # Even
+            # parity == 0 means None (default)
+
+            self.uart = UART(
+                uart_id,
+                baudrate=baudrate,
+                bits=8,
+                parity=uart_parity,
+                stop=stop_bits,
+                tx=Pin(pins["tx"]),
+                rx=Pin(pins["rx"]),
+            )
+            print(
+                f"[DEBUG] Modbus RTU initialized on UART{uart_id} (TX=GP{pins['tx']}, RX=GP{pins['rx']}), {baudrate} baud, {uart_parity} parity, {stop_bits} stop bits"
+            )
+        else:
+            # Local testing mode - simulate UART
+            print(
+                f"[INFO] Local test mode - simulating UART{uart_id} at {baudrate} baud"
+            )
+            self.uart = None
+
         # No DE pin needed - WaveShare HAT uses auto-direction switching
         self.lock = asyncio.Lock()  # Prevent concurrent RTU requests
 
@@ -55,16 +79,27 @@ class ModbusRTU:
         crc = self._calculate_crc(frame)
         complete_frame = frame + crc
 
-        # Send frame (auto-direction switching handles TX/RX mode)
-        self.uart.write(complete_frame)
-
-        # Wait for transmission to complete
-        time.sleep_ms(10)
+        if RUNNING_ON_HARDWARE:
+            # Send frame (auto-direction switching handles TX/RX mode)
+            self.uart.write(complete_frame)
+            self.uart.flush()
+        else:
+            # Local testing mode - simulate send
+            print(
+                f"[DEBUG] Local test mode - simulating RTU send: {complete_frame.hex()}"
+            )
+            time.sleep(0.01)  # Simulate transmission delay
 
         return complete_frame
 
     def _receive_response(self, expected_length=None, timeout=1000):
         """Receive Modbus RTU response"""
+        if not RUNNING_ON_HARDWARE:
+            # Local testing mode - simulate response
+            print("[DEBUG] Local test mode - simulating RTU response timeout")
+            time.sleep(0.1)  # Simulate response delay
+            return None
+
         start_time = time.ticks_ms()
         response = b""
 
