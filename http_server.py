@@ -10,7 +10,6 @@ class HTTPServer:
         self.modbus = modbus_rtu
         self.port = port
         self.socket = None
-        self.ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
 
     async def start(self):
         """Start the HTTP server"""
@@ -326,6 +325,7 @@ class HTTPServer:
 
     async def api_ota_update(self, params):
         """API: Perform OTA update"""
+        ota_updater = OTAUpdater("carlhoerberg/pico-modbus-gateway")
         try:
             # Check if force update is requested
             force_update = params.get("force", "false").lower() in ["true", "1", "yes"]
@@ -335,7 +335,7 @@ class HTTPServer:
             if force_update:
                 # Force update - download and replace files regardless of version
                 print("[OTA API] Force update requested")
-                update_result = await self.ota_updater.perform_update()
+                update_result = await ota_updater.perform_update()
                 if update_result:
                     response = {
                         "success": True,
@@ -343,7 +343,7 @@ class HTTPServer:
                         "action": "restart_pending",
                     }
                     # Restart immediately
-                    self.ota_updater.restart_device()
+                    ota_updater.restart_device()
                 else:
                     response = {
                         "success": False,
@@ -352,12 +352,12 @@ class HTTPServer:
             else:
                 # Normal update - check for newer version first
                 print("[OTA API] Checking for available updates")
-                update_available = await self.ota_updater.check_for_updates()
+                update_available = await ota_updater.check_for_updates()
 
                 if isinstance(update_available, tuple) and update_available[0]:
                     # Update available
                     print("[OTA API] Update available, performing update")
-                    update_result = await self.ota_updater.perform_update()
+                    update_result = await ota_updater.perform_update()
                     if update_result:
                         response = {
                             "success": True,
@@ -365,7 +365,7 @@ class HTTPServer:
                             "action": "restart_pending",
                         }
                         # Restart immediately
-                        self.ota_updater.restart_device()
+                        ota_updater.restart_device()
                     else:
                         response = {
                             "success": False,
