@@ -46,6 +46,7 @@ class ModbusRTU:
                 stop=stop_bits,
                 tx=Pin(pins["tx"]),
                 rx=Pin(pins["rx"]),
+                timeout=1000,  # 1 second timeout
             )
             print(
                 f"[DEBUG] Modbus RTU initialized on UART{uart_id} (TX=GP{pins['tx']}, RX=GP{pins['rx']}), {baudrate} baud, {uart_parity} parity, {stop_bits} stop bits"
@@ -100,21 +101,26 @@ class ModbusRTU:
             time.sleep(0.1)  # Simulate response delay
             return None
 
-        start_time = time.ticks_ms()
-        response = b""
+        # Read minimum response first (slave_id + function_code + data_length + CRC)
+        response = self.uart.read(4)
+        if not response or len(response) < 4:
+            return None
 
-        while time.ticks_diff(time.ticks_ms(), start_time) < timeout:
-            if self.uart.any():
-                response += self.uart.read()
-                if len(response) >= 4:  # Minimum valid response
-                    # Check if we have a complete frame
-                    if len(response) >= 4:
-                        expected_len = (
-                            response[2] + 5 if response[1] in [1, 2, 3, 4] else 8
-                        )
-                        if len(response) >= expected_len:
-                            break
-            time.sleep_ms(10)
+        # Determine expected frame length based on function code
+        if response[1] in [1, 2, 3, 4]:  # Read functions
+            expected_len = response[2] + 5  # data_length + slave_id + func_code + length_byte + 2_CRC
+            if len(response) < expected_len:
+                # Read remaining bytes
+                remaining = self.uart.read(expected_len - len(response))
+                if remaining:
+                    response += remaining
+        else:  # Write functions typically return 8 bytes
+            expected_len = 8
+            if len(response) < expected_len:
+                # Read remaining bytes
+                remaining = self.uart.read(expected_len - len(response))
+                if remaining:
+                    response += remaining
 
         if len(response) < 4:
             return None
