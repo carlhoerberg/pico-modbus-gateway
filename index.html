@@ -27,6 +27,64 @@
     <div class="container">
         <h1>Modbus RTU Gateway</h1>
 
+        <form id="modbusForm" onsubmit="executeModbus(event)">
+            <div class="form-group">
+                <label>Slave ID:</label>
+                <input type="number" id="slaveId" value="1" min="1" max="247">
+            </div>
+
+            <div class="form-group">
+                <label>Function:</label>
+                <select id="function">
+                    <option value="read_coils">Read Coils</option>
+                    <option value="read_discrete">Read Discrete Inputs</option>
+                    <option value="read_holding">Read Holding Registers</option>
+                    <option value="read_input">Read Input Registers</option>
+                    <option value="write_coil">Write Single Coil</option>
+                    <option value="write_single">Write Single Register</option>
+                    <option value="write_coils">Write Multiple Coils</option>
+                    <option value="write_multiple">Write Multiple Registers</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Start Address:</label>
+                <input type="number" id="startAddr" value="0" min="0" max="65535">
+            </div>
+
+            <div class="form-group" id="countGroup">
+                <label>Count:</label>
+                <input type="number" id="count" value="1" min="1" max="125">
+            </div>
+
+            <div class="form-group" id="valueGroup" style="display:none;">
+                <label>Value:</label>
+                <input type="number" id="value" value="0" min="0" max="65535">
+            </div>
+
+            <div class="form-group" id="valuesGroup" style="display:none;">
+                <label>Values:</label>
+                <input type="text" id="values" placeholder="1,2,3,4,5" title="Comma-separated values">
+            </div>
+
+            <div class="form-group" id="coilValueGroup" style="display:none;">
+                <label>Coil Value:</label>
+                <select id="coilValue">
+                    <option value="0">OFF (0)</option>
+                    <option value="1">ON (1)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="coilValuesGroup" style="display:none;">
+                <label>Coil Values:</label>
+                <input type="text" id="coilValues" placeholder="1,0,1,0,1" title="Comma-separated boolean values (1/0, true/false, on/off)">
+            </div>
+
+            <button type="submit">Execute</button>
+        </form>
+
+        <div class="result" id="result"></div>
+
         <!-- WiFi Configuration Section -->
         <div class="api-docs">
             <h2 id="wifiConfigToggle">WiFi Configuration</h2>
@@ -98,64 +156,6 @@
                 <div class="result" id="modbusResult"></div>
             </div>
         </div>
-
-        <form id="modbusForm" onsubmit="executeModbus(event)">
-            <div class="form-group">
-                <label>Slave ID:</label>
-                <input type="number" id="slaveId" value="1" min="1" max="247">
-            </div>
-
-            <div class="form-group">
-                <label>Function:</label>
-                <select id="function">
-                    <option value="read_coils">Read Coils</option>
-                    <option value="read_discrete">Read Discrete Inputs</option>
-                    <option value="read_holding">Read Holding Registers</option>
-                    <option value="read_input">Read Input Registers</option>
-                    <option value="write_coil">Write Single Coil</option>
-                    <option value="write_single">Write Single Register</option>
-                    <option value="write_coils">Write Multiple Coils</option>
-                    <option value="write_multiple">Write Multiple Registers</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Start Address:</label>
-                <input type="number" id="startAddr" value="0" min="0" max="65535">
-            </div>
-
-            <div class="form-group" id="countGroup">
-                <label>Count:</label>
-                <input type="number" id="count" value="1" min="1" max="125">
-            </div>
-
-            <div class="form-group" id="valueGroup" style="display:none;">
-                <label>Value:</label>
-                <input type="number" id="value" value="0" min="0" max="65535">
-            </div>
-
-            <div class="form-group" id="valuesGroup" style="display:none;">
-                <label>Values:</label>
-                <input type="text" id="values" placeholder="1,2,3,4,5" title="Comma-separated values">
-            </div>
-
-            <div class="form-group" id="coilValueGroup" style="display:none;">
-                <label>Coil Value:</label>
-                <select id="coilValue">
-                    <option value="0">OFF (0)</option>
-                    <option value="1">ON (1)</option>
-                </select>
-            </div>
-
-            <div class="form-group" id="coilValuesGroup" style="display:none;">
-                <label>Coil Values:</label>
-                <input type="text" id="coilValues" placeholder="1,0,1,0,1" title="Comma-separated boolean values (1/0, true/false, on/off)">
-            </div>
-
-            <button type="submit">Execute</button>
-        </form>
-
-        <div class="result" id="result"></div>
 
         <div class="api-docs">
             <h2 id="apiDocsToggle">API Documentation</h2>
@@ -232,6 +232,34 @@
                     <div class="params">
                         <strong>Parameters:</strong>
                         <code>slave_id</code> (1-247), <code>start_addr</code> (0-65535), <code>values</code> (comma-separated 0-65535)
+                    </div>
+                </div>
+
+                <h3>Configuration & Management</h3>
+                
+                <div class="endpoint">
+                    <h4>WiFi Configuration</h4>
+                    <div class="endpoint-url">GET /api/wifi_config?ssid=MyNetwork&password=MyPassword</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>ssid</code> (WiFi network name), <code>password</code> (WiFi password, optional)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>Modbus Configuration</h4>
+                    <div class="endpoint-url">GET /api/modbus_config?uart_id=0&baudrate=9600&parity=0&stop_bits=1</div>
+                    <div class="params">
+                        <strong>Parameters:</strong>
+                        <code>uart_id</code> (0 or 1), <code>baudrate</code> (1200-115200), <code>parity</code> (0=None, 1=Odd, 2=Even), <code>stop_bits</code> (1 or 2)
+                    </div>
+                </div>
+
+                <div class="endpoint">
+                    <h4>OTA Update</h4>
+                    <div class="endpoint-url">GET /api/ota_update</div>
+                    <div class="params">
+                        <strong>Description:</strong> Triggers over-the-air update from GitHub repository. Device will restart automatically if update is successful.
                     </div>
                 </div>
 
