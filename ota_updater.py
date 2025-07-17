@@ -11,6 +11,9 @@ class OTAUpdater:
         self.github_repo = github_repo
         self.api_url = f"https://api.github.com/repos/{github_repo}"
         self.commit_file = "current_commit.txt"
+        self.headers = {
+            "User-Agent": "pico-modbus-gateway/1.0"
+        }
         self.files_to_exclude = [
             self.commit_file,
             "config.py",
@@ -42,7 +45,7 @@ class OTAUpdater:
             contents_url = f"{self.api_url}/contents?ref={commit_sha}"
             print(f"[OTA] Fetching repository contents: {contents_url}")
 
-            response = requests.get(contents_url)
+            response = requests.get(contents_url, headers=self.headers)
             if response.status_code != 200:
                 print(f"[OTA] Failed to fetch contents: {response.status_code}")
                 return []
@@ -82,7 +85,7 @@ class OTAUpdater:
             commits_url = f"{self.api_url}/commits/main"
             print(f"[OTA] Fetching: {commits_url}")
 
-            response = requests.get(commits_url)
+            response = requests.get(commits_url, headers=self.headers)
             if response.status_code != 200:
                 print(f"[OTA] Failed to fetch commits: {response.status_code}")
                 return False
@@ -112,7 +115,7 @@ class OTAUpdater:
             file_url = f"https://raw.githubusercontent.com/{self.github_repo}/{commit_sha}/{filename}"
             print(f"[OTA] Downloading {filename}...")
 
-            response = requests.get(file_url)
+            response = requests.get(file_url, headers=self.headers)
             if response.status_code != 200:
                 print(f"[OTA] Failed to download {filename}: {response.status_code}")
                 return False
