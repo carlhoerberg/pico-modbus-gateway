@@ -85,6 +85,14 @@
 
         <div class="result" id="result"></div>
 
+        <!-- OTA Update Section -->
+        <form id="otaForm" onsubmit="triggerOTAUpdate(event)">
+            <div class="form-group">
+                <button type="submit">OTA Update</button>
+            </div>
+        </form>
+        <div class="result" id="otaResult"></div>
+
         <!-- WiFi Configuration Section -->
         <div class="api-docs">
             <h2 id="wifiConfigToggle">WiFi Configuration</h2>
@@ -426,6 +434,26 @@
                 }
             } catch (error) {
                 document.getElementById('modbusResult').innerHTML = 
+                    '<pre style="color: red;">Error: ' + error.message + '</pre>';
+            }
+        }
+
+        async function triggerOTAUpdate(event) {
+            event.preventDefault();
+            try {
+                document.getElementById('otaResult').innerHTML = '<pre>Starting OTA update...</pre>';
+                const response = await fetch('/api/ota_update');
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('otaResult').innerHTML = 
+                        '<pre style="color: green;">' + JSON.stringify(result, null, 2) + '</pre>';
+                } else {
+                    document.getElementById('otaResult').innerHTML = 
+                        '<pre style="color: red;">' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                document.getElementById('otaResult').innerHTML = 
                     '<pre style="color: red;">Error: ' + error.message + '</pre>';
             }
         }
