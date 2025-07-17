@@ -457,6 +457,29 @@
                     '<pre style="color: red;">Error: ' + error.message + '</pre>';
             }
         }
+
+        async function loadConfigValues() {
+            try {
+                const response = await fetch('/api/get_config');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update WiFi fields
+                    document.getElementById('wifiSsid').value = result.config.wifi.ssid || '';
+                    
+                    // Update Modbus fields
+                    document.getElementById('uartId').value = result.config.modbus.uart_id;
+                    document.getElementById('baudrate').value = result.config.modbus.baudrate;
+                    document.getElementById('parity').value = result.config.modbus.parity;
+                    document.getElementById('stopBits').value = result.config.modbus.stop_bits;
+                }
+            } catch (error) {
+                console.error('Error loading config values:', error);
+            }
+        }
+
+        // Load configuration values when page loads
+        window.addEventListener('load', loadConfigValues);
     </script>
 </body>
 </html>

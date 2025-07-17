@@ -137,6 +137,8 @@ class HTTPServer:
                 return await self.api_wifi_config(params)
             elif path == "/api/modbus_config":
                 return await self.api_modbus_config(params)
+            elif path == "/api/get_config":
+                return await self.api_get_config(params)
             else:
                 return self.api_error("Unknown API endpoint")
 
@@ -552,6 +554,39 @@ class HTTPServer:
 
         except Exception as e:
             response = {"success": False, "error": f"ModbusRTU config error: {str(e)}"}
+
+        json_str = json.dumps(response)
+        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+
+    async def api_get_config(self, params):
+        """API: Get current configuration values"""
+        try:
+            # Import config module to get current values
+            import config
+
+            # Force reload to get latest values
+            import importlib
+
+            importlib.reload(config)
+
+            response = {
+                "success": True,
+                "config": {
+                    "wifi": {
+                        "ssid": getattr(config, "WIFI_SSID", ""),
+                        "password": getattr(config, "WIFI_PASSWORD", ""),
+                    },
+                    "modbus": {
+                        "uart_id": getattr(config, "UART_ID", 0),
+                        "baudrate": getattr(config, "BAUDRATE", 9600),
+                        "parity": getattr(config, "PARITY", 0),
+                        "stop_bits": getattr(config, "STOP_BITS", 1),
+                    },
+                },
+            }
+
+        except Exception as e:
+            response = {"success": False, "error": f"Config read error: {str(e)}"}
 
         json_str = json.dumps(response)
         return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
