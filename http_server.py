@@ -356,7 +356,13 @@ class HTTPServer:
                 print("[OTA API] Checking for available updates")
                 update_available = await ota_updater.check_for_updates()
 
-                if isinstance(update_available, tuple) and update_available[0]:
+                if update_available is False:
+                    # Failed to check for updates (network error, 403, etc.)
+                    response = {
+                        "success": False,
+                        "error": "Failed to check for updates. Check logs for details.",
+                    }
+                elif isinstance(update_available, tuple) and update_available[0]:
                     # Update available
                     print("[OTA API] Update available, performing update")
                     update_result = await ota_updater.perform_update()
