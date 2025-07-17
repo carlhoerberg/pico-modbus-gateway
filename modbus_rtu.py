@@ -108,19 +108,14 @@ class ModbusRTU:
 
         # Determine expected frame length based on function code
         if response[1] in [1, 2, 3, 4]:  # Read functions
-            expected_len = response[2] + 5  # data_length + slave_id + func_code + length_byte + 2_CRC
+            # data_length + slave_id + func_code + length_byte + CRC
+            expected_len = response[2] + 5
             if len(response) < expected_len:
-                # Read remaining bytes
-                remaining = self.uart.read(expected_len - len(response))
-                if remaining:
-                    response += remaining
+                response += self.uart.read(expected_len - len(response))
         else:  # Write functions typically return 8 bytes
             expected_len = 8
             if len(response) < expected_len:
-                # Read remaining bytes
-                remaining = self.uart.read(expected_len - len(response))
-                if remaining:
-                    response += remaining
+                response += self.uart.read(expected_len - len(response))
 
         if len(response) < 4:
             return None
