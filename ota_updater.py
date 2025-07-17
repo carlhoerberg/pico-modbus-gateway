@@ -10,37 +10,28 @@ class OTAUpdater:
     def __init__(self, github_repo):
         self.github_repo = github_repo
         self.api_url = f"https://api.github.com/repos/{github_repo}"
-        self.commit_file = "current_commit.txt"
+        self.version_file = "VERSION"
         self.files_to_exclude = [
-            self.commit_file,
             "config.py",
             "Makefile",
             "README.md",
             "LICENSE",
         ]
 
-    def get_current_commit(self):
-        """Get current commit hash from file"""
+    def get_current_version(self):
+        """Get current version from local VERSION file"""
         try:
-            with open(self.commit_file, "r") as f:
+            with open(self.version_file, "r") as f:
                 return f.read().strip()
         except:
-            return ""
+            return "0.0.0"
 
-    def save_commit(self, commit_sha):
-        """Save current commit hash to file"""
+    async def get_repo_files(self, tag_name):
+        """Get list of files from repository at specific tag"""
         try:
-            with open(self.commit_file, "w") as f:
-                f.write(commit_sha)
-        except Exception as e:
-            print(f"Failed to save commit: {e}")
-
-    async def get_repo_files(self, commit_sha):
-        """Get list of files from repository"""
-        try:
-            # Get repository contents
-            contents_url = f"{self.api_url}/contents?ref={commit_sha}"
-            print(f"[OTA] Fetching repository contents: {contents_url}")
+            # Get repository contents at tag
+            contents_url = f"{self.api_url}/contents?ref={tag_name}"
+            print(f"[OTA] Fetching repository contents for tag {tag_name}: {contents_url}")
 
             response = requests.get(contents_url)
             if response.status_code != 200:
@@ -67,50 +58,60 @@ class OTAUpdater:
             print(f"[OTA] Error fetching repository files: {e}")
             return []
 
+    async def get_remote_version(self):
+        """Get remote version from GitHub using direct raw access"""
+        try:
+            # Use raw GitHub content URL to get VERSION file
+            version_url = f"https://raw.githubusercontent.com/{self.github_repo}/main/VERSION"
+            print(f"[OTA] Fetching remote version: {version_url}")
+
+            response = requests.get(version_url)
+            if response.status_code != 200:
+                print(f"[OTA] Failed to fetch VERSION file: {response.status_code}")
+                return None
+
+            remote_version = response.text.strip()
+            response.close()
+            print(f"[OTA] Remote version: {remote_version}")
+            return remote_version
+
+        except Exception as e:
+            print(f"[OTA] Error fetching remote version: {e}")
+            return None
+
     async def check_for_updates(self):
-        """Check GitHub for newer commits"""
+        """Check GitHub for newer version using VERSION file"""
         print("[OTA] Checking for updates...")
 
         try:
-            # Get current commit hash
-            current_commit = self.get_current_commit()
-            print(
-                f"[OTA] Current commit: {current_commit[:8] if current_commit else 'none'}"
-            )
+            # Get current local version
+            current_version = self.get_current_version()
+            print(f"[OTA] Current version: {current_version}")
 
-            # Get latest commit from GitHub
-            commits_url = f"{self.api_url}/commits/main"
-            print(f"[OTA] Fetching: {commits_url}")
-
-            response = requests.get(commits_url)
-            if response.status_code != 200:
-                print(f"[OTA] Failed to fetch commits: {response.status_code}")
+            # Get remote version
+            remote_version = await self.get_remote_version()
+            if remote_version is None:
+                print("[OTA] Failed to get remote version")
                 return False
 
-            commits = response.json()
-            response.close()
-
-            latest_commit = commits["sha"]
-            print(f"[OTA] Latest commit: {latest_commit[:8]}")
-
             # Check if update is needed
-            if current_commit == latest_commit:
+            if current_version == remote_version:
                 print("[OTA] Already up to date")
                 return False
 
-            print("[OTA] Update available!")
-            return True, latest_commit
+            print(f"[OTA] Update available! {current_version} -> {remote_version}")
+            return True, remote_version
 
         except Exception as e:
             print(f"[OTA] Error checking for updates: {e}")
             return False
 
-    async def download_file(self, filename, commit_sha):
-        """Download a single file from GitHub"""
+    async def download_file(self, filename, tag_name):
+        """Download a single file from GitHub at specific tag"""
         try:
-            # GitHub raw content URL
-            file_url = f"https://raw.githubusercontent.com/{self.github_repo}/{commit_sha}/{filename}"
-            print(f"[OTA] Downloading {filename}...")
+            # GitHub raw content URL for specific tag
+            file_url = f"https://raw.githubusercontent.com/{self.github_repo}/{tag_name}/{filename}"
+            print(f"[OTA] Downloading {filename} from tag {tag_name}...")
 
             response = requests.get(file_url)
             if response.status_code != 200:
@@ -185,12 +186,12 @@ class OTAUpdater:
             return False
 
         if isinstance(update_result, tuple):
-            has_update, latest_commit = update_result
+            has_update, new_version = update_result
         else:
             return False
 
-        # Get list of files from repository
-        files_to_update = await self.get_repo_files(latest_commit)
+        # Get list of files from repository at the new version tag
+        files_to_update = await self.get_repo_files(new_version)
         if not files_to_update:
             print("[OTA] No files found to update")
             return False
@@ -206,7 +207,7 @@ class OTAUpdater:
             gc.collect()  # Free memory
             await asyncio.sleep(0.1)  # Yield control
 
-            if await self.download_file(filename, latest_commit):
+            if await self.download_file(filename, new_version):
                 success_count += 1
             else:
                 failed_files.append(filename)
@@ -216,8 +217,6 @@ class OTAUpdater:
             print(
                 f"[OTA] Update successful! Updated {success_count} files, deleted {deleted_count} files."
             )
-            # Save new commit hash
-            self.save_commit(latest_commit)
             return True
         else:
             print(
