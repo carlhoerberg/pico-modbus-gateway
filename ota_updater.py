@@ -149,12 +149,19 @@ class OTAUpdater:
             # Get list of local files
             local_files = []
             for filename in os.listdir("."):
-                if os.path.isfile(filename):
-                    # Skip excluded files
-                    if not any(
-                        exclude in filename for exclude in self.files_to_exclude
-                    ):
-                        local_files.append(filename)
+                try:
+                    # Check if it's a file using os.stat
+                    stat_info = os.stat(filename)
+                    # Check if it's a regular file (not directory)
+                    if stat_info[0] & 0x8000:  # S_IFREG
+                        # Skip excluded files
+                        if not any(
+                            exclude in filename for exclude in self.files_to_exclude
+                        ):
+                            local_files.append(filename)
+                except:
+                    # Skip if we can't stat the file
+                    pass
 
             # Find files to delete (exist locally but not in repo)
             files_to_delete = []
