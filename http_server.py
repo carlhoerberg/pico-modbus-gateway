@@ -356,7 +356,14 @@ class HTTPServer:
                 print("[OTA API] Checking for available updates")
                 update_available = await ota_updater.check_for_updates()
 
-                if update_available is False:
+                if update_available == "up_to_date":
+                    # Already up to date
+                    response = {
+                        "success": True,
+                        "message": "No updates available. Device is already running the latest version.",
+                        "action": "no_update",
+                    }
+                elif update_available is False:
                     # Failed to check for updates (network error, 403, etc.)
                     response = {
                         "success": False,

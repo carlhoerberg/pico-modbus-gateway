@@ -99,7 +99,7 @@ class OTAUpdater:
             # Check if update is needed
             if current_commit == latest_commit:
                 print("[OTA] Already up to date")
-                return False
+                return "up_to_date"
 
             print("[OTA] Update available!")
             return True, latest_commit
@@ -191,6 +191,9 @@ class OTAUpdater:
 
         # Check for updates
         update_result = await self.check_for_updates()
+        if update_result == "up_to_date":
+            print("[OTA] Already running latest version")
+            return True
         if not update_result:
             return False
 
