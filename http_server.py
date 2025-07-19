@@ -574,13 +574,7 @@ class HTTPServer:
     async def api_get_config(self, params):
         """API: Get current configuration values"""
         try:
-            # Import config module to get current values
             import config
-
-            # Force reload to get latest values
-            import importlib
-
-            importlib.reload(config)
 
             response = {
                 "success": True,
