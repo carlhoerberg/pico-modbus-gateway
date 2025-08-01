@@ -28,6 +28,19 @@ class HTTPServer:
             except OSError:
                 await asyncio.sleep(0.1)
 
+    def send_all(self, socket, data):
+        """Send all data through socket, handling partial sends"""
+        total_sent = 0
+        while total_sent < len(data):
+            try:
+                sent = socket.send(data[total_sent:])
+                if sent == 0:
+                    break  # Connection closed
+                total_sent += sent
+            except OSError:
+                break  # Socket error
+        return total_sent
+
     async def handle_client(self, client_socket):
         """Handle HTTP client request"""
         try:
@@ -75,7 +88,7 @@ class HTTPServer:
                 response = self.serve_404()
 
             # Send response
-            client_socket.send(response.encode())
+            self.send_all(client_socket, response.encode())
             client_socket.close()
 
         except Exception as e:

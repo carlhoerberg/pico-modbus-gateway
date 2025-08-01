@@ -11,9 +11,7 @@ class OTAUpdater:
         self.github_repo = github_repo
         self.api_url = f"https://api.github.com/repos/{github_repo}"
         self.commit_file = "current_commit.txt"
-        self.headers = {
-            "User-Agent": "pico-modbus-gateway/1.0"
-        }
+        self.headers = {"User-Agent": "pico-modbus-gateway/1.0"}
         self.files_to_exclude = [
             self.commit_file,
             "config.py",
