@@ -1,5 +1,5 @@
 import time
-import uasyncio as asyncio
+import asyncio
 
 try:
     # MicroPython on hardware (Pico)

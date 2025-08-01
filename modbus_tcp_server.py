@@ -1,110 +1,63 @@
-import socket
 import struct
-import uasyncio as asyncio
+import asyncio
 
 
 class ModbusTCPServer:
     def __init__(self, modbus_rtu, port=502):
         self.modbus_rtu = modbus_rtu
         self.port = port
-        self.socket = None
         self.transaction_id = 0
 
     async def start(self):
         """Start the Modbus TCP server"""
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(socket.getaddrinfo("0.0.0.0", self.port)[0][-1])
-        self.socket.listen(5)
-        self.socket.setblocking(False)
-
         print(f"Modbus TCP Server listening on port {self.port}")
+        server = await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
+        return server
 
-        while True:
-            try:
-                client_socket, addr = self.socket.accept()
-                print(f"Modbus TCP connection from {addr}")
-                asyncio.create_task(self.handle_client(client_socket))
-            except OSError:
-                await asyncio.sleep(0.1)
-
-    async def handle_client(self, client_socket):
+    async def handle_client(self, reader, writer):
         """Handle Modbus TCP client connection"""
+        addr = writer.get_extra_info("peername")
+        print(f"Modbus TCP connection from {addr}")
+
         try:
-            client_socket.setblocking(False)
-
             while True:
-                try:
-                    # Read MBAP header (7 bytes)
-                    header = await self._read_exact(client_socket, 7)
-                    if not header:
-                        break
+                # Read MBAP header (7 bytes)
+                header = await reader.readexactly(7)
+                if not header:
+                    break
 
-                    # Parse MBAP header
-                    transaction_id, protocol_id, length, unit_id = struct.unpack(
-                        ">HHHB", header
+                # Parse MBAP header
+                transaction_id, protocol_id, length, unit_id = struct.unpack(
+                    ">HHHB", header
+                )
+
+                # Verify protocol ID (should be 0 for Modbus)
+                if protocol_id != 0:
+                    print(f"Invalid protocol ID: {protocol_id}")
+                    break
+
+                # Read PDU (length - 1 byte for unit_id)
+                pdu = await reader.readexactly(length - 1)
+                if not pdu:
+                    break
+
+                # Process Modbus request
+                response_pdu = await self._process_modbus_request(unit_id, pdu)
+
+                if response_pdu:
+                    # Create MBAP header for response
+                    response_length = len(response_pdu) + 1  # +1 for unit_id
+                    response_header = struct.pack(
+                        ">HHHB", transaction_id, 0, response_length, unit_id
                     )
 
-                    # Verify protocol ID (should be 0 for Modbus)
-                    if protocol_id != 0:
-                        print(f"Invalid protocol ID: {protocol_id}")
-                        break
-
-                    # Read PDU (length - 1 byte for unit_id)
-                    pdu = await self._read_exact(client_socket, length - 1)
-                    if not pdu:
-                        break
-
-                    # Process Modbus request
-                    response_pdu = await self._process_modbus_request(unit_id, pdu)
-
-                    if response_pdu:
-                        # Create MBAP header for response
-                        response_length = len(response_pdu) + 1  # +1 for unit_id
-                        response_header = struct.pack(
-                            ">HHHB", transaction_id, 0, response_length, unit_id
-                        )
-
-                        # Send response
-                        full_response = response_header + response_pdu
-                        await self._send_all(client_socket, full_response)
-
-                except OSError:
-                    break
-                except Exception as e:
-                    print(f"Error handling Modbus TCP request: {e}")
-                    break
+                    # Send response
+                    full_response = response_header + response_pdu
+                    writer.write(full_response)
+                    await writer.drain()
 
         finally:
-            try:
-                client_socket.close()
-            except:
-                pass
-
-    async def _read_exact(self, sock, length):
-        """Read exactly 'length' bytes from socket"""
-        data = b""
-        while len(data) < length:
-            try:
-                chunk = sock.recv(length - len(data))
-                if not chunk:
-                    return None
-                data += chunk
-            except OSError:
-                await asyncio.sleep(0.01)
-        return data
-
-    async def _send_all(self, sock, data):
-        """Send all data through socket"""
-        total_sent = 0
-        while total_sent < len(data):
-            try:
-                sent = sock.send(data[total_sent:])
-                if sent == 0:
-                    raise RuntimeError("Socket connection broken")
-                total_sent += sent
-            except OSError:
-                await asyncio.sleep(0.01)
+            writer.close()
 
     async def _process_modbus_request(self, unit_id, pdu):
         """Process Modbus PDU and return response PDU"""

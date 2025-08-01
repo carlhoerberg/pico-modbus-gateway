@@ -1,6 +1,5 @@
-import socket
 import json
-import uasyncio as asyncio
+import asyncio
 from ota_updater import OTAUpdater
 import machine
 
@@ -9,71 +8,38 @@ class HTTPServer:
     def __init__(self, modbus_rtu, port=80):
         self.modbus = modbus_rtu
         self.port = port
-        self.socket = None
 
     async def start(self):
         """Start the HTTP server"""
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(socket.getaddrinfo("0.0.0.0", self.port)[0][-1])
-        self.socket.listen(5)
-        self.socket.setblocking(False)
-
         print(f"HTTP Server listening on port {self.port}")
+        server = await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
+        return server
 
-        while True:
-            try:
-                client_socket, addr = self.socket.accept()
-                asyncio.create_task(self.handle_client(client_socket))
-            except OSError:
-                await asyncio.sleep(0.1)
-
-    def send_all(self, socket, data):
-        """Send all data through socket, handling partial sends"""
-        total_sent = 0
-        while total_sent < len(data):
-            try:
-                sent = socket.send(data[total_sent:])
-                if sent == 0:
-                    break  # Connection closed
-                total_sent += sent
-            except OSError:
-                break  # Socket error
-        return total_sent
-
-    async def handle_client(self, client_socket):
+    async def handle_client(self, reader, writer):
         """Handle HTTP client request"""
         try:
-            client_socket.setblocking(False)
-            request = b""
-
-            # Read request
+            # Read HTTP request line by line
+            lines = []
             while True:
                 try:
-                    chunk = client_socket.recv(1024)
-                    if not chunk:
+                    line = await reader.readline()
+                    if not line:
                         break
-                    request += chunk
-                    if b"\r\n\r\n" in request:
+                    line = line.decode("utf-8").rstrip("\r\n")
+                    lines.append(line)
+                    if line == "":  # Empty line indicates end of headers
                         break
-                except OSError:
-                    await asyncio.sleep(0.01)
-
-            # Parse HTTP request
-            try:
-                request_str = request.decode("utf-8")
-            except:
-                request_str = request.decode()
-            lines = request_str.split("\r\n")
+                except (OSError, UnicodeDecodeError):
+                    break
 
             if not lines or not lines[0]:
-                client_socket.close()
+                writer.close()
                 return
 
             # Parse HTTP request line safely
             request_parts = lines[0].split(" ")
             if len(request_parts) < 2:
-                client_socket.close()
+                writer.close()
                 return
 
             method = request_parts[0]
@@ -83,20 +49,16 @@ class HTTPServer:
             if path == "/":
                 response = self.serve_index()
             elif path.startswith("/api/"):
-                response = await self.handle_api(path, request_str)
+                response = await self.handle_api(path)
             else:
                 response = self.serve_404()
 
             # Send response
-            self.send_all(client_socket, response.encode())
-            client_socket.close()
+            writer.write(response)
+            await writer.drain()
 
-        except Exception as e:
-            print(f"Error handling client: {e}")
-            try:
-                client_socket.close()
-            except:
-                pass
+        finally:
+            writer.close()
 
     def serve_index(self):
         """Serve main HTML page"""
@@ -113,7 +75,7 @@ class HTTPServer:
         html = "<html><body><h1>404 Not Found</h1></body></html>"
         return f"HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: {len(html)}\r\n\r\n{html}"
 
-    async def handle_api(self, path, request_str):
+    async def handle_api(self, path):
         """Handle API requests"""
         try:
             # Parse query parameters

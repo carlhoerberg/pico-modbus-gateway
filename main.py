@@ -9,7 +9,7 @@ except ImportError:
     print("[INFO] Running in local test mode - hardware features disabled")
 
 import time
-import uasyncio as asyncio
+import asyncio
 from modbus_rtu import ModbusRTU
 from modbus_tcp_server import ModbusTCPServer
 from http_server import HTTPServer
@@ -122,10 +122,13 @@ async def main():
     print(f"[INFO] Access the web interface at: http://{ip_address}:{http_port}")
     print(f"[INFO] Modbus TCP server available at: {ip_address}:{modbus_port}")
 
-    # Start both servers concurrently
+    # Start both servers concurrently and wait for them to close
     print("[DEBUG] Starting HTTP and Modbus TCP servers...")
-    await asyncio.gather(http_server.start(), modbus_tcp_server.start())
+    servers = await asyncio.gather(http_server.start(), modbus_tcp_server.start())
     print("[SUCCESS] All servers started successfully!")
+
+    # Wait for servers to close (blocks until shutdown)
+    await asyncio.gather(servers[0].wait_closed(), servers[1].wait_closed())
 
 
 # Run the application

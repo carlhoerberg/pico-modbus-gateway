@@ -2,7 +2,7 @@ import json
 import gc
 import os
 import requests
-import uasyncio as asyncio
+import asyncio
 import machine
 
 
