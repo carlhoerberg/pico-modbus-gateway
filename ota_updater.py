@@ -191,7 +191,7 @@ class OTAUpdater:
         update_result = await self.check_for_updates()
         if update_result == "up_to_date":
             print("[OTA] Already running latest version")
-            return True
+            return False
         if not update_result:
             return False
 
