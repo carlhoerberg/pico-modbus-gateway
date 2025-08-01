@@ -14,6 +14,7 @@ upload:
 	mpremote cp modbus_rtu.py :
 	mpremote cp modbus_tcp_server.py :
 	mpremote cp http_server.py :
+	mpremote cp ota_updater.py :
 	mpremote cp index.html :
 	@echo "Upload complete!"
 
@@ -50,6 +51,7 @@ clean:
 	-mpremote rm modbus_rtu.py
 	-mpremote rm modbus_tcp_server.py
 	-mpremote rm http_server.py
+	-mpremote rm ota_updater.py
 	-mpremote rm index.html
 	@echo "Clean complete!"
 
