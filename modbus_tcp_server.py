@@ -3,10 +3,12 @@ import asyncio
 
 
 class ModbusTCPServer:
-    def __init__(self, modbus_rtu, port=502):
+    def __init__(self, modbus_rtu, port=502, max_connections=10):
         self.modbus_rtu = modbus_rtu
         self.port = port
         self.transaction_id = 0
+        self.max_connections = max_connections
+        self.active_connections = 0
 
     async def start(self):
         """Start the Modbus TCP server"""
@@ -19,10 +21,22 @@ class ModbusTCPServer:
         addr = writer.get_extra_info("peername")
         print(f"Modbus TCP connection from {addr}")
 
+        # Check connection limit
+        if self.active_connections >= self.max_connections:
+            print(
+                f"Connection limit reached ({self.max_connections}), rejecting {addr}"
+            )
+            writer.close()
+            await writer.wait_closed()
+            return
+
+        self.active_connections += 1
+        print(f"Active connections: {self.active_connections}/{self.max_connections}")
+
         try:
             while True:
-                # Read MBAP header (7 bytes)
-                header = await reader.readexactly(7)
+                # Read MBAP header (7 bytes) with timeout
+                header = await asyncio.wait_for(reader.readexactly(7), timeout=30)
                 if not header:
                     break
 
@@ -36,8 +50,8 @@ class ModbusTCPServer:
                     print(f"Invalid protocol ID: {protocol_id}")
                     break
 
-                # Read PDU (length - 1 byte for unit_id)
-                pdu = await reader.readexactly(length - 1)
+                # Read PDU (length - 1 byte for unit_id) with timeout
+                pdu = await asyncio.wait_for(reader.readexactly(length - 1), timeout=5)
                 if not pdu:
                     break
 
@@ -54,10 +68,17 @@ class ModbusTCPServer:
                     # Send response
                     full_response = response_header + response_pdu
                     writer.write(full_response)
-                    await writer.drain()
+                    await asyncio.wait_for(writer.drain(), timeout=30)
 
+        except asyncio.TimeoutError:
+            print(f"Connection timeout from {addr}")
         finally:
+            self.active_connections -= 1
+            print(
+                f"Closing connection from {addr}. Active connections: {self.active_connections}"
+            )
             writer.close()
+            await writer.wait_closed()
 
     async def _process_modbus_request(self, unit_id, pdu):
         """Process Modbus PDU and return response PDU"""
