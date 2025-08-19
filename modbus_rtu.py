@@ -20,15 +20,13 @@ class ModbusRTU:
 
         if RUNNING_ON_HARDWARE:
             # Pin assignments based on WaveShare Pico-2CH-RS485 HAT
-            pin_map = {
-                0: {"tx": 0, "rx": 1},  # UART0: GP0, GP1
-                1: {"tx": 4, "rx": 5},  # UART1: GP4, GP5
-            }
-
-            if uart_id not in pin_map:
+            pins = None
+            if uart_id == 0:
+                pins = {"tx": 0, "rx": 1}
+            elif uart_id == 1:
+                pins = {"tx": 4, "rx": 5}
+            else:
                 raise ValueError(f"Invalid UART ID: {uart_id}. Must be 0 or 1.")
-
-            pins = pin_map[uart_id]
 
             # Convert parity from config format to UART format
             uart_parity = None
@@ -93,13 +91,13 @@ class ModbusRTU:
 
         return complete_frame
 
-    def _receive_response(self, expected_length=None, timeout=1000):
+    def _receive_response(self):
         """Receive Modbus RTU response"""
         if not RUNNING_ON_HARDWARE:
             # Local testing mode - simulate response
             print("[DEBUG] Local test mode - simulating RTU response timeout")
             time.sleep(0.1)  # Simulate response delay
-            return None
+            raise OSError("Modbus RTU communication timeout")
 
         # Read minimum response first (slave_id + function_code + data_length + CRC)
         response = self.uart.read(4)
