@@ -1,13 +1,7 @@
 import builtins
 import time
 import asyncio
-
-try:
-    # MicroPython on hardware (Pico)
-    import machine
-except ImportError:
-    # Standard MicroPython (local testing)
-    machine = None
+import machine
 
 # Store original print function
 _original_print = builtins.print
@@ -60,18 +54,15 @@ async def tcp_log_server(port=4132):
             message = data.decode("utf-8").strip().lower()
 
             if message == "reboot":
-                _original_print("[INFO] Reboot command received via TCP")
-
-                if machine:
+                try:
                     _original_print("[INFO] Rebooting device...")
                     machine.reset()
-                else:
-                    _original_print("[INFO] Local test mode - reboot not available")
+                except AttributeError:
+                    raise SystemExit("Rebooting device...")
 
         except Exception as e:
-            _original_print(f"[DEBUG] TCP log client error: {e}")
+            _original_print(f"[DEBUG] TCP log client error: {e} ({type(e).__name__})")
         finally:
-            _original_print(f"[DEBUG] Closing TCP log client")
             writer.close()
             await writer.wait_closed()
 
