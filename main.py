@@ -48,7 +48,7 @@ def connect_wifi(ssid, password):
 
         status = wlan.status()
         if status == 3:
-            print("[SUCCESS] Connected to WiFi!")
+            print("[INFO] Connected to WiFi!")
             ifconfig = wlan.ifconfig()
             print(f"[DEBUG] Network configuration:")
             print(f"[DEBUG]   IP Address: {ifconfig[0]}")

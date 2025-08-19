@@ -11,15 +11,12 @@ class HTTPServer:
 
     async def start(self):
         """Start the HTTP server"""
-        print(f"HTTP Server listening on port {self.port}")
-        server = await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
-        return server
+        return await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
 
     async def handle_client(self, reader, writer):
         """Handle HTTP client request"""
         try:
-            request_line = await reader.readline()
-            reader.close()  # Ignore the rest of the request for simplicity
+            request_line = await asyncio.wait_for(reader.readline(), timeout=5)
             if not request_line:
                 return
 
@@ -42,6 +39,8 @@ class HTTPServer:
             # Send response
             writer.write(response)
             await writer.drain()
+        except Exception as e:
+            print(f"[ERROR] Error handling http request: {e} ({type(e).__name__})")
         finally:
             writer.close()
             await writer.wait_closed()

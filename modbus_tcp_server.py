@@ -72,6 +72,8 @@ class ModbusTCPServer:
 
         except asyncio.TimeoutError:
             print(f"Connection timeout from {addr}")
+        except Exception as e:
+            print(f"[ERROR] Error handling modbus request: {e} ({type(e).__name__})")
         finally:
             self.active_connections -= 1
             print(

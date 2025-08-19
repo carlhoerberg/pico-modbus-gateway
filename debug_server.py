@@ -6,7 +6,7 @@ import machine
 # Store original print function
 _original_print = builtins.print
 
-# Ring buffer for last 10 messages
+# Ring buffer for last messages
 _message_buffer = []
 _buffer_size = 16
 
@@ -47,7 +47,7 @@ async def tcp_log_server(port=4132):
             await writer.drain()
 
             # Listen for commands
-            data = await asyncio.wait_for(reader.readline(), timeout=10)
+            data = await asyncio.wait_for(reader.readline(), timeout=5)
             if not data:
                 return
 
@@ -55,19 +55,19 @@ async def tcp_log_server(port=4132):
 
             if message == "reboot":
                 try:
-                    _original_print("[INFO] Rebooting device...")
+                    print("[INFO] Rebooting device...")
                     machine.reset()
                 except AttributeError:
                     raise SystemExit("Rebooting device...")
 
         except Exception as e:
-            _original_print(f"[DEBUG] TCP log client error: {e} ({type(e).__name__})")
+            print(f"[DEBUG] TCP log client error: {e} ({type(e).__name__})")
         finally:
             writer.close()
             await writer.wait_closed()
 
     server = await asyncio.start_server(handle_client, "0.0.0.0", port)
-    _original_print(f"[DEBUG] TCP log server listening on port {port}")
+    print(f"[DEBUG] TCP log server listening on port {port}")
     return server
 
 
