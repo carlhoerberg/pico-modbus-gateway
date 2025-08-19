@@ -1,6 +1,3 @@
-# Override print and start debug server
-import debug_server
-
 try:
     import network
 
@@ -118,14 +115,9 @@ async def main():
     modbus_tcp_server = await ModbusTCPServer(modbus, port=modbus_port).start()
     print(f"[INFO] Modbus TCP server available at: {ip_address}:{modbus_port}")
 
-    # Start TCP log server
-    tcp_log_server = await debug_server.tcp_log_server(4138)
-    print(f"[INFO] TCP log server available at: {ip_address}:4138")
-
     await asyncio.gather(
         http_server.wait_closed(),
         modbus_tcp_server.wait_closed(),
-        tcp_log_server.wait_closed(),
     )
 
 
