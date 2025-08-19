@@ -18,28 +18,14 @@ class HTTPServer:
     async def handle_client(self, reader, writer):
         """Handle HTTP client request"""
         try:
-            # Read HTTP request line by line
-            lines = []
-            while True:
-                try:
-                    line = await reader.readline()
-                    if not line:
-                        break
-                    line = line.decode("utf-8").rstrip("\r\n")
-                    lines.append(line)
-                    if line == "":  # Empty line indicates end of headers
-                        break
-                except (OSError, UnicodeDecodeError):
-                    break
-
-            if not lines or not lines[0]:
-                writer.close()
+            request_line = await reader.readline()
+            reader.close()  # Ignore the rest of the request for simplicity
+            if not request_line:
                 return
 
             # Parse HTTP request line safely
-            request_parts = lines[0].split(" ")
+            request_parts = request_line.decode("utf-8").rstrip("\r\n").split(" ")
             if len(request_parts) < 2:
-                writer.close()
                 return
 
             method = request_parts[0]
