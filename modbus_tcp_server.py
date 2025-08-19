@@ -12,9 +12,7 @@ class ModbusTCPServer:
 
     async def start(self):
         """Start the Modbus TCP server"""
-        print(f"Modbus TCP Server listening on port {self.port}")
-        server = await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
-        return server
+        return await asyncio.start_server(self.handle_client, "0.0.0.0", self.port)
 
     async def handle_client(self, reader, writer):
         """Handle Modbus TCP client connection"""
