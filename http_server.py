@@ -42,9 +42,9 @@ class HTTPServer:
             # Send response
             writer.write(response)
             await writer.drain()
-
         finally:
             writer.close()
+            await writer.wait_closed()
 
     def serve_index(self):
         """Serve main HTML page"""
