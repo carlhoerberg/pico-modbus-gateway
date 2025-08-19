@@ -1,5 +1,5 @@
-# Override print with one that also sends output to a UDP server
-import udp_print
+# Override print and start debug server
+import debug_server
 
 try:
     import network
@@ -101,7 +101,6 @@ async def main():
 
     # Initialize Modbus RTU
     print("[DEBUG] Initializing Modbus RTU interface...")
-    # Use settings from config.py - pin assignments are handled automatically
     modbus = ModbusRTU(
         uart_id=UART_ID,
         baudrate=BAUDRATE,
@@ -111,25 +110,23 @@ async def main():
 
     # Initialize HTTP server (use port 8080 for local testing to avoid root requirement)
     http_port = 80 if RUNNING_ON_HARDWARE else 8080
-    print(f"[DEBUG] Initializing HTTP server on port {http_port}...")
-    http_server = HTTPServer(modbus, port=http_port)
+    http_server = await HTTPServer(modbus, port=http_port).start()
+    print(f"[INFO] Access the web interface at: http://{ip_address}:{http_port}")
 
     # Initialize Modbus TCP server (use port 5020 for local testing)
     modbus_port = 502 if RUNNING_ON_HARDWARE else 5020
-    print(f"[DEBUG] Initializing Modbus TCP server on port {modbus_port}...")
-    modbus_tcp_server = ModbusTCPServer(modbus, port=modbus_port)
-
-    print("[SUCCESS] Starting Modbus Gateway...")
-    print(f"[INFO] Access the web interface at: http://{ip_address}:{http_port}")
+    modbus_tcp_server = await ModbusTCPServer(modbus, port=modbus_port).start()
     print(f"[INFO] Modbus TCP server available at: {ip_address}:{modbus_port}")
 
-    # Start both servers concurrently and wait for them to close
-    print("[DEBUG] Starting HTTP and Modbus TCP servers...")
-    servers = await asyncio.gather(http_server.start(), modbus_tcp_server.start())
-    print("[SUCCESS] All servers started successfully!")
+    # Start TCP log server
+    tcp_log_server = await debug_server.tcp_log_server(4138)
+    print(f"[INFO] TCP log server available at: {ip_address}:4138")
 
-    # Wait for servers to close (blocks until shutdown)
-    await asyncio.gather(servers[0].wait_closed(), servers[1].wait_closed())
+    await asyncio.gather(
+        http_server.wait_closed(),
+        modbus_tcp_server.wait_closed(),
+        tcp_log_server.wait_closed(),
+    )
 
 
 # Run the application
