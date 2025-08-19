@@ -1,10 +1,11 @@
+# Override print with one that also sends output to a UDP server
+import udp_print
+
 try:
-    # MicroPython on hardware (Pico)
     import network
 
     RUNNING_ON_HARDWARE = True
 except ImportError:
-    # Standard MicroPython (local testing)
     RUNNING_ON_HARDWARE = False
     print("[INFO] Running in local test mode - hardware features disabled")
 
