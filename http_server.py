@@ -60,12 +60,12 @@ class HTTPServer:
         except OSError:
             return self.serve_404()
 
-        return f"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {len(html)}\r\n\r\n{html}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: {len(html)}\r\n\r\n{html}"
 
     def serve_404(self):
         """Serve 404 error"""
         html = "<html><body><h1>404 Not Found</h1></body></html>"
-        return f"HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: {len(html)}\r\n\r\n{html}"
+        return f"HTTP/1.0 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: {len(html)}\r\n\r\n{html}"
 
     async def handle_api(self, path):
         """Handle API requests"""
@@ -128,7 +128,7 @@ class HTTPServer:
             response = {"success": True, "data": result}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_read_discrete(self, params):
         """API: Read discrete inputs"""
@@ -146,7 +146,7 @@ class HTTPServer:
             response = {"success": True, "data": result}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_read_holding(self, params):
         """API: Read holding registers"""
@@ -164,7 +164,7 @@ class HTTPServer:
             response = {"success": True, "data": result}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_read_input(self, params):
         """API: Read input registers"""
@@ -182,7 +182,7 @@ class HTTPServer:
             response = {"success": True, "data": result}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_write_single(self, params):
         """API: Write single register"""
@@ -200,7 +200,7 @@ class HTTPServer:
             response = {"success": True, "message": "Register written successfully"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_write_multiple(self, params):
         """API: Write multiple holding registers"""
@@ -217,7 +217,7 @@ class HTTPServer:
                 "error": "Invalid values format. Use comma-separated integers.",
             }
             json_str = json.dumps(response)
-            return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+            return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
         result = await self.modbus.write_multiple_registers(
             slave_id, start_addr, values
@@ -234,7 +234,7 @@ class HTTPServer:
             }
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_write_coil(self, params):
         """API: Write single coil"""
@@ -255,7 +255,7 @@ class HTTPServer:
             response = {"success": True, "message": "Coil written successfully"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_write_coils(self, params):
         """API: Write multiple coils"""
@@ -275,7 +275,7 @@ class HTTPServer:
                 "error": "Invalid values format. Use comma-separated boolean values.",
             }
             json_str = json.dumps(response)
-            return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+            return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
         result = await self.modbus.write_multiple_coils(slave_id, start_addr, values)
 
@@ -290,7 +290,7 @@ class HTTPServer:
             }
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_ota_update(self, params):
         """API: Perform OTA update"""
@@ -366,7 +366,7 @@ class HTTPServer:
             response = {"success": False, "error": f"OTA update error: {str(e)}"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_wifi_config(self, params):
         """API: Update WiFi configuration"""
@@ -377,7 +377,7 @@ class HTTPServer:
             if not ssid:
                 response = {"success": False, "error": "WiFi SSID cannot be empty"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             # Read current config file
             try:
@@ -386,7 +386,7 @@ class HTTPServer:
             except OSError:
                 response = {"success": False, "error": "Could not read config file"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             # Update WiFi settings in config
             lines = config_content.split("\n")
@@ -419,7 +419,7 @@ class HTTPServer:
             except OSError:
                 response = {"success": False, "error": "Could not write config file"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             response = {
                 "success": True,
@@ -438,7 +438,7 @@ class HTTPServer:
             response = {"success": False, "error": f"WiFi config error: {str(e)}"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_modbus_config(self, params):
         """API: Update ModbusRTU configuration"""
@@ -452,12 +452,12 @@ class HTTPServer:
             if uart_id not in [0, 1]:
                 response = {"success": False, "error": "UART ID must be 0 or 1"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             if baudrate not in [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]:
                 response = {"success": False, "error": "Invalid baudrate"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             if parity not in [0, 1, 2]:
                 response = {
@@ -465,12 +465,12 @@ class HTTPServer:
                     "error": "Parity must be 0 (None), 1 (Odd), or 2 (Even)",
                 }
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             if stop_bits not in [1, 2]:
                 response = {"success": False, "error": "Stop bits must be 1 or 2"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             # Read current config file
             try:
@@ -479,7 +479,7 @@ class HTTPServer:
             except OSError:
                 response = {"success": False, "error": "Could not read config file"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             # Update ModbusRTU settings in config
             lines = config_content.split("\n")
@@ -506,7 +506,7 @@ class HTTPServer:
             except OSError:
                 response = {"success": False, "error": "Could not write config file"}
                 json_str = json.dumps(response)
-                return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+                return f"HTTP/1.0 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
             # Pin assignments based on UART ID
             pin_map = {0: {"tx": 0, "rx": 1}, 1: {"tx": 4, "rx": 5}}
@@ -536,7 +536,7 @@ class HTTPServer:
             response = {"success": False, "error": f"ModbusRTU config error: {str(e)}"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     async def api_get_config(self, params):
         """API: Get current configuration values"""
@@ -563,10 +563,10 @@ class HTTPServer:
             response = {"success": False, "error": f"Config read error: {str(e)}"}
 
         json_str = json.dumps(response)
-        return f"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
 
     def api_error(self, message):
         """Return API error response"""
         response = {"success": False, "error": message}
         json_str = json.dumps(response)
-        return f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
+        return f"HTTP/1.0 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len(json_str)}\r\n\r\n{json_str}"
