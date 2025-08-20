@@ -8,6 +8,7 @@ class HTTPServer:
     def __init__(self, modbus_rtu, port=80):
         self.modbus = modbus_rtu
         self.port = port
+        self.buffer = bytearray(1024)
 
     async def start(self):
         """Start the HTTP server"""
@@ -20,21 +21,11 @@ class HTTPServer:
             if not request_line:
                 return
 
-            # Read headers line by line to drain the request
-            content_length = 0
-            while True:
-                header_line = await reader.readline()
-                if not header_line or header_line == b"\r\n":
-                    break
-                header_str = header_line.decode("utf-8")
-                key, value = header_str.split(":", 1)
-                # Check for content-length header
-                if key.lower() == "content-length":
-                    content_length = int(value.strip())
-
-            # Read body if content-length is present
-            if content_length > 0:
-                body = await reader.read(content_length)
+            # Drain the request so that the socket is closed with FIN and not RST
+            while (
+                await asyncio.wait_for(reader.readinto(self.buffer), timeout=1) == 1024
+            ):
+                pass
 
             # Parse HTTP request line safely
             request_parts = request_line.decode("utf-8").rstrip("\r\n").split(" ")
